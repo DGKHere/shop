@@ -10,9 +10,20 @@ class BrandController {
     }
 
     async getAll(req, res){
-        const types = await Brand.findAll()
-        return res.json(types)
+        const brand = await Brand.findAll()
+        return res.json(brand)
     }
+
+    async delete(req, res, next) {
+
+        const {id} = req.body
+        if (!id) return next(ApiError.badRequest('Брэнд не выбран'))
+
+        const isDelete = await Brand.destroy({where: {id}})
+
+        if (isDelete) return res.json({message:'Брэнд успешно удален'})
+    }
+
 
 }
 

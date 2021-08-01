@@ -22,13 +22,13 @@ app.use(fileUpload({}))
 
 app.use(cookieParser());
 app.use(session({
-    secret: 'secret',
+    secret: process.env.SESSION_SECRET_KEY,
     resave: true,
     saveUninitialized: true,
     rolling: true,
     cookie: {
         path: '/',
-        maxAge: 60000 * 1000
+        maxAge: 36000000000
     },
     name: 'SID'
 }));
@@ -40,7 +40,7 @@ app.use(errorHandler)
 const start = async () => {
     try {
         await sequelize.authenticate()
-        await sequelize.sync()
+        await sequelize.sync({alter: true})
         app.listen(process.env.PORT, process.env.HOST, ()=> console.log(`Server has been started http://${process.env.HOST}:${process.env.PORT}`))
     }catch (e){
         console.log(e)

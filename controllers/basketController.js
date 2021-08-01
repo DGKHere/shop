@@ -1,19 +1,18 @@
-const {User, Device, Order, OrderDevice} = require("../models/models")
+const {Device, Order} = require("../models/models")
 const ApiError = require("../error/apiError")
-const {Op} = require('sequelize');
 const sequelize = require('../db')
 
 class BasketController{
 
     async showOrder(req, res){
 
-        const session = req.session;
+        const basket = req.session.basket;
 
-        if(!Array.isArray(session.basket) || !session.basket.length){
-            return res.json({})
+        if(!Array.isArray(basket) || !basket.length){
+            return res.json({message: 'Корзина пуста'})
         }
 
-        const arrId = session.basket.map(prod =>{
+        const arrId = basket.map(prod =>{
             return prod.id
         })
 
@@ -22,15 +21,15 @@ class BasketController{
         res.json({mes: products})
     }
 
-    async basketAdd(req, res){
+    async basketAdd(req, res, next){
 
         const {id} = req.body
 
-        if (!id) return res.json("Товар не выбран")
+        if (!id) return next(ApiError.badRequest("Товар не выбран"))
 
         const countProd = await Device.count({where: {id}})
 
-        if (!countProd) return res.json("Товар не существует")
+        if (!countProd) return next(ApiError.badRequest("Товар не существует"))
 
         const session = req.session;
 
@@ -51,39 +50,33 @@ class BasketController{
         res.json({session})
     }
 
-    basketRemove(req, res){
+    basketRemove(req, res, next){
 
         const {id} = req.body
 
-        if (!id){
-            res.json("Товар не выбран")
-        }
+        if (!id) return next(ApiError.badRequest('Товар не выбран'))
 
         const session = req.session;
 
-        if (!session.basket || !Array.isArray(session.basket) || !session.basket.length){
-            res.json("Корзина пуста")
+        if (!Array.isArray(session.basket) || !session.basket.length){
+            res.json({message: 'Корзина пуста'})
         }
 
         const product = session.basket.find(product => product.id === id)
 
-        if (!product){
-            res.json("Товар отсутствует в корзине")
-        }
+        if (!product){res.json({message: 'Товар отсутствует в корзине'})}
 
         if (product.count === 1){
             session.basket = session.basket.filter(p => p !== product)
         }else {
             product.count--
         }
-
         session.save()
-        console.log(session)
 
         res.json({session})
     }
 
-    async basketConfirm(req, res){
+    async basketConfirm(req, res, next){
 
 
 
@@ -107,42 +100,17 @@ class BasketController{
         // const {name, address, phone} = req.body
         //
         // if (!name || !address || !phone){
-        //     res.json(ApiError.badRequest("Данные введены неверно"))
+        //     return next(ApiError.badRequest("Данные введены неверно"))
         // }
 
         try {
-
-            await sequelize.transaction(async (t) => {
-
-                const arrId = basket.map(({id}) => {return id})
-                const products = await Device.findAll({attributes: ['id', 'count'], where: {id: {[Op.in]: arrId}}})
-
-                products.forEach(product => {
-
-                    const i = arrId.indexOf(product.id)
-
-                    if (i === -1) return res.json({message: `Товар ${id} не найден`})
-                    if (!product.count >= basket[i].count) return res.json({message: `В настоящий момент ${product.name} доступен только в колличестве ${product.count}`})
-
-                    product.count -= basket[i].count
-                    product.save({transaction: t})
-                })
-
-                const order = await Order.create({name, address, phone},{transaction: t})
-
-                const insertRows = basket.map(({id, count}) => {
-                    return {orderId: order.id, deviceId: id, count}
-                })
-
-                order.order_device = await OrderDevice.bulkCreate(insertRows,{transaction: t})
-            })
-
+            await Order.createOrder(name, address, phone, basket)
         }catch (e){
-            return ApiError.badRequest('При оформленни заказа произошла ошибка')
+            return next(ApiError.badRequest(e.message))
         }
 
-        // basket.length = 0
-        // req.session.save()
+        basket.length = 0
+        req.session.save()
 
         res.json({message: 'Заказ успешно оформлен'})
     }

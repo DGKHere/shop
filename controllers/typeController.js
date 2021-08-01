@@ -14,6 +14,16 @@ class TypeController {
         return res.json(types)
     }
 
+    async delete(req, res, next) {
+
+        const {id} = req.body
+        if (!id) return next(ApiError.badRequest('Тип не выбран'))
+
+        const isDelete = await Type.destroy({where: {id}})
+
+        if (isDelete) return res.json({message:'Тип успешно удален'})
+    }
+
 }
 
 module.exports = new TypeController()

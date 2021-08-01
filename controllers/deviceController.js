@@ -21,13 +21,12 @@ class DeviceController {
 
             if (info) {
                 info = JSON.parse(info)
-                info.forEach(rowInfo => {
-                    DeviceInfo.create({
-                        title: rowInfo.title,
-                        description: rowInfo.description,
-                        deviceId: device.id
-                    })
+                info = info.map(({title, description}) => {
+                    return {title, description, deviceId: device.id}
                 })
+
+                await DeviceInfo.bulkCreate(info)
+
             }
 
             return res.json(device)
@@ -44,25 +43,14 @@ class DeviceController {
         page = page || 1
         limit = limit || 9
 
-        let offset = (page - 1) * limit
+        const offset = (page - 1) * limit
 
-        let devices;
+        const where = {}
 
-        if (!brandId && !typeId) {
-            devices = await Device.findAndCountAll({limit, offset})
-        }
+        if (brandId) where.brandId = brandId
+        if (typeId) where.typeId = typeId
 
-        if (brandId && !typeId) {
-            devices = await Device.findAndCountAll({where: {brandId}, limit, offset})
-        }
-
-        if (!brandId && typeId) {
-            devices = await Device.findAndCountAll({where: {typeId}, limit, offset})
-        }
-
-        if (brandId && typeId) {
-            devices = await Device.findAndCountAll({where: {brandId, typeId}, limit, offset})
-        }
+        const devices = await Device.findAndCountAll({where, limit, offset})
 
         return res.json(devices)
     }
