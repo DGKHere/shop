@@ -1,4 +1,4 @@
-const {Brand} = require('../models/models')
+const {Brand, Device} = require('../models/models')
 const ApiError = require('../error/apiError')
 
 class BrandController {
@@ -16,12 +16,16 @@ class BrandController {
 
     async delete(req, res, next) {
 
+
         const {id} = req.body
+
         if (!id) return next(ApiError.badRequest('Брэнд не выбран'))
 
-        const isDelete = await Brand.destroy({where: {id}})
+        if (!await Brand.destroy({where: {id}}) && await Device.update({id: null}, {where: {id}})){
+            return res.json({message:'Брэнд успешно удален'})
+        }
+        else return res.json({message:'При удалении произошла ошибка'})
 
-        if (isDelete) return res.json({message:'Брэнд успешно удален'})
     }
 
 

@@ -1,6 +1,8 @@
 const {Device, Order} = require("../models/models")
 const ApiError = require("../error/apiError")
 const sequelize = require('../db')
+const {Op} = require('sequelize');
+
 
 class BasketController{
 
@@ -78,30 +80,27 @@ class BasketController{
 
     async basketConfirm(req, res, next){
 
-
-
-        const name = 'Dmitry'
-        const address = 'Taganrog'
-        const phone = '89682633380'
-
-        const basket = [
-            {id: 1, count: 2},
-            {id: 2, count: 1},
-            {id: 4, count: 4},
-        ]
-
-
-        // const basket = req.session.basket;
+        // const name = 'Dmitry'
+        // const address = 'Taganrog'
+        // const phone = '89682633380'
         //
-        // if (!Array.isArray(basket) || !basket.length){
-        //     return res.json({message: "Корзина пуста"})
-        // }
-        //
-        // const {name, address, phone} = req.body
-        //
-        // if (!name || !address || !phone){
-        //     return next(ApiError.badRequest("Данные введены неверно"))
-        // }
+        // const basket = [
+        //     {id: 1, count: 2},
+        //     {id: 2, count: 1},
+        //     {id: 4, count: 4},
+        // ]
+
+        const basket = req.session.basket;
+
+        if (!Array.isArray(basket) || !basket.length){
+            return res.json({message: "Корзина пуста"})
+        }
+
+        const {name, address, phone} = req.body
+
+        if (!name || !address || !phone){
+            return next(ApiError.badRequest("Данные введены неверно"))
+        }
 
         try {
             await Order.createOrder(name, address, phone, basket)

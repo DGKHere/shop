@@ -1,4 +1,4 @@
-const {Type} = require('../models/models')
+const {Type, Device} = require('../models/models')
 const ApiError = require('../error/apiError')
 
 class TypeController {
@@ -17,12 +17,17 @@ class TypeController {
     async delete(req, res, next) {
 
         const {id} = req.body
+
         if (!id) return next(ApiError.badRequest('Тип не выбран'))
 
-        const isDelete = await Type.destroy({where: {id}})
+        if (!await Type.destroy({where: {id}}) && await Device.update({id: null}, {where: {id}})){
+            return res.json({message:'Тип успешно удален'})
+        }
+        else return res.json({message:'При удалении произошла ошибка'})
 
-        if (isDelete) return res.json({message:'Тип успешно удален'})
     }
+
+
 
 }
 
